@@ -1,11 +1,9 @@
-# Importar las bibliotecas necesarias
-import math
-
 import pandas as pd
 import seaborn as sn
-import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from imblearn.under_sampling import RandomUnderSampler
+from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import Perceptron, LogisticRegression
@@ -136,8 +134,6 @@ def plot_distribtions(dataset):
 
 plot_distribtions(df)
 
-from imblearn.under_sampling import RandomUnderSampler
-
 
 def create_balanced_subset(dataset, target_samples_per_class):
     # Get the minimum number of samples per class (excluding very small classes)
@@ -170,7 +166,7 @@ print("Todas las distribuciones menos Elevation, Wilderness Area y Soil Type sig
 # 2. Matriz de correlación
 plt.figure(figsize=(12, 8))
 corr_matrix = balanced_df.corr()
-sns.heatmap(corr_matrix, cmap='coolwarm', annot=False)
+sns.heatmap(corr_matrix, cmap='Purples', annot=False)
 plt.title('Matriz de correlaciones')
 plt.show()
 
@@ -192,21 +188,13 @@ categorical_features = [col for col in X.columns if col not in numeric_features]
 scaler = StandardScaler()
 X[numeric_features] = scaler.fit_transform(X[numeric_features])
 
-from sklearn.feature_selection import SelectFromModel
-from sklearn.ensemble import RandomForestClassifier
+pca = PCA(n_components=0.9, random_state=RANDOM_STATE) # Seleccionar componentes que expliquen el 90% de la varianza
+X = pca.fit_transform(X)
 
-selector = SelectFromModel(RandomForestClassifier(random_state=RANDOM_STATE))
-X_selected = selector.fit_transform(X, y)
-
-# imprimir las características eliminadas
-features = X.columns[selector.get_support()]
-negated_features = [feature for feature in X.columns if feature not in features]
-print(f"Se han eliminado {len(X.columns) - len(features)} columnas: {negated_features}")
-
-X_selected = X_selected.astype('float32')
+print(f"PCA ha seleccionado {pca.n_components_} componentes principales.")
 
 # División de datos
-X_train, X_test, y_train, y_test = train_test_split(X_selected, y, test_size=0.25, random_state=RANDOM_STATE)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=RANDOM_STATE)
 
 
 
@@ -274,8 +262,6 @@ models = {
 }
 
 
-# Entrenar y evaluar todos los modelos
-
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
 
 model_results = {}
@@ -303,7 +289,6 @@ for name, model_info in models.items():
     print(f"Precisión en validación: {grid.best_score_:.3f}")
     print(f"Precisión en test: {model_results[name]['test_score']:.3f}")
 
-## Visualización y comparación de resultados
 
 def plot_performance(n_rows = 2, n_cols = 2):
     plots_por_figura = n_rows * n_cols
@@ -325,7 +310,7 @@ def plot_performance(n_rows = 2, n_cols = 2):
                 # Crea un DataFrame de pandas per a una visualització més neta
                 df_class_report = pd.DataFrame(class_report).transpose()
                 # Visualitza la taula de mètriques amb seaborn
-                sn.heatmap(df_class_report.iloc[:-3, :-1], annot=True, fmt=".2%", cmap="Blues", cbar=False,
+                sn.heatmap(df_class_report.iloc[:-3, :-1], annot=True, fmt=".2%", cmap="Purples", cbar=False,
                            linewidths=0.5, linecolor='black', annot_kws={"size": 10}, ax=axes[j])
                 # Aplica etiquetes i títol
                 axes[j].set_xlabel('\nMétricas')
@@ -351,7 +336,7 @@ def plot_performance(n_rows = 2, n_cols = 2):
                 y_pred = model.predict(X_test)  # calcula les prediccions
                 conf_mat = confusion_matrix(y_test, y_pred)  # Calcula la matriu de confusió
                 # Visualitza la matriu de confusió amb seaborn
-                sn.heatmap(conf_mat, annot=True, fmt="d", cmap="Blues", cbar=False, xticklabels=model.classes_,
+                sn.heatmap(conf_mat, annot=True, fmt="d", cmap="Purples", cbar=False, xticklabels=model.classes_,
                            yticklabels=model.classes_, ax=axes[j])
                 # Aplica etiquetes i títol
                 axes[j].set_xlabel('Classes Predicció')
@@ -371,29 +356,4 @@ def plot_performance(n_rows = 2, n_cols = 2):
         plt.show()
 
 
-
-
 plot_performance()
-
-"""
-## Conclusiones
-
-### Rendimiento de los modelos
-- El modelo con mejor rendimiento fue [...] con una precisión de test del [...].
-- Los modelos más simples como el Perceptrón y la Regresión Logística mostraron un rendimiento [...].
-- Random Forest demostró ser robusto y consistente en la clasificación.
-
-### Análisis de características
-- La reducción de dimensionalidad mediante PCA permitió reducir las variables a [...] componentes.
-- Las características más importantes para la clasificación fueron [...].
-
-### Limitaciones y mejoras potenciales
-- El dataset presenta un desbalanceo en las clases que podría abordarse con técnicas de sampling.
-- Se podrían explorar técnicas de feature engineering adicionales.
-- El tiempo de computación para algunos modelos fue considerable.
-
-### Recomendaciones
-1. Para implementaciones futuras, se recomienda [...].
-2. El preprocesamiento de datos podría mejorarse mediante [...].
-3. Considerar el uso de técnicas de ensemble más avanzadas.
-"""
